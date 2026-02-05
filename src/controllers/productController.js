@@ -137,11 +137,131 @@ exports.uploadProductImage = async (req, res) => {
 // @access  Public
 exports.getProductsByCategory = async (req, res) => {
     try {
-        const products = await Product.find({ category: req.params.id });
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+        const total = await Product.countDocuments({ category: req.params.id });
+
+        const products = await Product.find({ category: req.params.id })
+            .skip(startIndex)
+            .limit(limit);
+
+        // Pagination result
+        const pagination = {};
+
+        if (endIndex < total) {
+            pagination.next = {
+                page: page + 1,
+                limit
+            };
+        }
+
+        if (startIndex > 0) {
+            pagination.prev = {
+                page: page - 1,
+                limit
+            };
+        }
+
         res.status(200).json({
             success: true,
             count: products.length,
+            pagination,
             data: products
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Get all products
+// @route   GET /api/v1/products
+// @access  Public
+exports.getAllProducts = async (req, res) => {
+    try {
+        const { search, minPrice, maxPrice, category } = req.query;
+        let queryObj = {};
+
+        if (search) {
+            queryObj.name = { $regex: search, $options: 'i' };
+        }
+
+        if (minPrice || maxPrice) {
+            queryObj.price = {};
+            if (minPrice) {
+                queryObj.price.$gte = minPrice;
+            }
+            if (maxPrice) {
+                queryObj.price.$lte = maxPrice;
+            }
+        }
+
+        if (category) {
+            queryObj.category = category;
+        }
+
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+        const total = await Product.countDocuments(queryObj);
+
+        const products = await Product.find(queryObj)
+            .skip(startIndex)
+            .limit(limit);
+
+        // Pagination result
+        const pagination = {};
+
+        if (endIndex < total) {
+            pagination.next = {
+                page: page + 1,
+                limit
+            };
+        }
+
+        if (startIndex > 0) {
+            pagination.prev = {
+                page: page - 1,
+                limit
+            };
+        }
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            pagination,
+            data: products
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Get single product
+// @route   GET /api/v1/products/:id
+// @access  Public
+exports.getSingleProduct = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: `Product not found with id of ${req.params.id}`
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: product
         });
     } catch (error) {
         res.status(500).json({
