@@ -43,10 +43,23 @@ const OrderSchema = mongoose.Schema(
         },
         clientSecret: {
             type: String,
-            required: true,
         },
         paymentIntentId: {
             type: String,
+        },
+        isPaid: {
+            type: Boolean,
+            default: false,
+        },
+        paidAt: {
+            type: Date,
+        },
+        isDelivered: {
+            type: Boolean,
+            default: false,
+        },
+        deliveredAt: {
+            type: Date,
         },
     },
     { timestamps: true }
